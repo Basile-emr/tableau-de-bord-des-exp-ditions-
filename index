@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Logistics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0c10;
+      --surface: #111318;
+      --surface2: #181c24;
+      --border: #1e2330;
+      --accent: #00e5ff;
+      --accent2: #7c4dff;
+      --accent3: #ff6d3b;
+      --text: #e8eaf0;
+      --muted: #5a6070;
+      --green: #00e676;
+      --red: #ff1744;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-head);
+      overflow-x: hidden;
+    }
+
+    /* ─── GRID NOISE BACKGROUND ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app { position: relative; z-index: 1; min-height: 100vh; }
+
+    /* ─── HEADER ─── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,12,16,0.85);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .logo-text span { color: var(--accent); }
+
+    .header-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ─── UPLOAD ZONE ─── */
+    #upload-screen {
+      min-height: calc(100vh - 73px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .upload-card {
+      max-width: 540px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .upload-card h2 {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--text), var(--muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .upload-card p {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 40px;
+      letter-spacing: 0.04em;
+    }
+
+    #drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 20px;
+      padding: 60px 40px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #drop-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(0,229,255,0.05) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #drop-zone:hover, #drop-zone.drag-over {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    #drop-zone:hover::before, #drop-zone.drag-over::before {
+      opacity: 1;
+    }
+
+    .drop-icon {
+      font-size: 52px;
+      margin-bottom: 16px;
+      display: block;
+      filter: drop-shadow(0 0 20px rgba(0,229,255,0.3));
+    }
+
+    .drop-label {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .drop-sub {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    #fileInput { display: none; }
+
+    .btn-upload {
+      margin-top: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #000;
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-upload:hover {
+      background: #26ffff;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,229,255,0.3);
+    }
+
+    .supported-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+
+    /* ─── DASHBOARD ─── */
+    #dashboard { display: none; padding: 32px 40px 60px; }
+
+    /* ─── TOP BAR ─── */
+    .dash-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dash-title {
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .dash-title strong { color: var(--accent); font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: 0; display: block; }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── KPI ROW ─── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 2px;
+    }
+    .kpi-card.c-cyan::after { background: var(--accent); }
+    .kpi-card.c-purple::after { background: var(--accent2); }
+    .kpi-card.c-orange::after { background: var(--accent3); }
+    .kpi-card.c-green::after { background: var(--green); }
+
+    .kpi-card:hover { transform: translateY(-2px); }
+
+    .kpi-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .kpi-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .kpi-card.c-cyan .kpi-value { color: var(--accent); }
+    .kpi-card.c-purple .kpi-value { color: var(--accent2); }
+    .kpi-card.c-orange .kpi-value { color: var(--accent3); }
+    .kpi-card.c-green .kpi-value { color: var(--green); }
+
+    /* ─── AWB KPI ─── */
+    .awb-bar-wrap {
+      margin-top: 10px;
+      background: var(--surface2);
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .awb-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--green), var(--accent));
+      transition: width 0.8s cubic-bezier(.25,.8,.25,1);
+    }
+
+    /* ─── CHARTS GRID ─── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+    }
+
+    .chart-card.full { grid-column: 1 / -1; }
+
+    .chart-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
+    }
+
+    .chart-subtitle {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .chart-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .chart-wrap { position: relative; height: 260px; }
+    .chart-wrap-sm { position: relative; height: 220px; }
+
+    /* ─── TABLE ─── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .table-toolbar-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      flex: 1;
+      max-width: 340px;
+    }
+
+    .search-wrap input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      width: 100%;
+    }
+
+    .search-wrap input::placeholder { color: var(--muted); }
+
+    .search-icon { color: var(--muted); font-size: 14px; flex-shrink: 0; }
+
+    .table-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .table-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--surface2);
+    }
+
+    thead th {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(30,35,48,0.6);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover { background: var(--surface2); }
+
+    tbody td {
+      padding: 11px 16px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      white-space: nowrap;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .td-ref { color: var(--accent); font-weight: 500; }
+    .td-ok { color: var(--green); }
+    .td-empty { color: var(--red); }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .badge-air { background: rgba(0,229,255,0.1); color: var(--accent); }
+    .badge-sea { background: rgba(124,77,255,0.1); color: var(--accent2); }
+    .badge-ltl { background: rgba(255,109,59,0.12); color: var(--accent3); }
+    .badge-other { background: rgba(90,96,112,0.2); color: var(--muted); }
+
+    /* ─── PAGINATION ─── */
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-top: 1px solid var(--border);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .page-info {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .page-btns { display: flex; gap: 6px; }
+
+    .page-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .page-btn:hover, .page-btn.active { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── CHART.JS DEFAULTS ─── */
+    canvas { max-width: 100%; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center;
+      padding: 20px 40px;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate { animation: fadeUp 0.5s ease both; }
+    .delay-1 { animation-delay: 0.05s; }
+    .delay-2 { animation-delay: 0.1s; }
+    .delay-3 { animation-delay: 0.15s; }
+    .delay-4 { animation-delay: 0.2s; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      header { padding: 16px 20px; }
+      #dashboard { padding: 20px; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-card.full { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📦</div>
+      <div class="logo-text"><span>Logis</span>tics</div>
+    </div>
+    <span class="header-tag">Freight Intelligence Dashboard · v1.0</span>
+  </header>
+
+  <!-- ─── UPLOAD SCREEN ─── -->
+  <div id="upload-screen">
+    <div class="upload-card">
+      <h2>Analyse ton fichier<br>logistique en 3 secondes.</h2>
+      <p>Aucune donnée n'est envoyée. Tout est traité localement dans ton navigateur.</p>
+
+      <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept=".xls,.xlsx" />
+        <span class="drop-icon">📊</span>
+        <span class="drop-label">Glisse ton fichier Excel ici</span>
+        <p class="drop-sub">ou clique pour sélectionner</p>
+      </div>
+
+      <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
+        ↑ Ouvrir un fichier
+      </button>
+
+      <div>
+        <span class="supported-tag"><span class="dot"></span> Supporte .xlsx et .xls · Zéro stockage · 100% local</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DASHBOARD ─── -->
+  <div id="dashboard">
+
+    <div class="dash-topbar animate">
+      <div class="dash-title">
+        Vue d'ensemble
+        <strong id="dash-filename">—</strong>
+      </div>
+      <button class="btn-reset" onclick="resetDashboard()">⟳ Nouveau fichier</button>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="kpi-row animate delay-1">
+      <div class="kpi-card c-cyan">
+        <div class="kpi-label">Total expéditions</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub">références uniques</div>
+      </div>
+      <div class="kpi-card c-purple">
+        <div class="kpi-label">Carriers actifs</div>
+        <div class="kpi-value" id="kpi-carriers">—</div>
+        <div class="kpi-sub">transporteurs</div>
+      </div>
+      <div class="kpi-card c-orange">
+        <div class="kpi-label">Destinations</div>
+        <div class="kpi-value" id="kpi-countries">—</div>
+        <div class="kpi-sub">pays</div>
+      </div>
+      <div class="kpi-card c-green">
+        <div class="kpi-label">AWB complétés</div>
+        <div class="kpi-value" id="kpi-awb-pct">—</div>
+        <div class="kpi-sub" id="kpi-awb-sub">chargement…</div>
+        <div class="awb-bar-wrap"><div class="awb-bar-fill" id="awb-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- CHARTS GRID -->
+    <div class="charts-grid animate delay-2">
+
+      <!-- Carrier -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Expéditions par Carrier</div>
+            <div class="chart-subtitle">Dépendance fournisseur</div>
+          </div>
+          <span class="chart-tag">Bar</span>
+        </div>
+        <div class="chart-wrap"><canvas id="carrierChart"></canvas></div>
+      </div>
+
+      <!-- Transport Mode -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Transport Mode</div>
+            <div class="chart-subtitle">Air · LTL · PAR…</div>
+          </div>
+          <span class="chart-tag">Donut</span>
+        </div>
+        <div class="chart-wrap"><canvas id="transportModeChart"></canvas></div>
+      </div>
+
+      <!-- Country full width -->
+      <div class="chart-card full">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Destinations — Country of Destination</div>
+            <div class="chart-subtitle">Répartition géographique des expéditions</div>
+          </div>
+          <span class="chart-tag">Bar</span>
+        </div>
+        <div class="chart-wrap"><canvas id="countryChart"></canvas></div>
+      </div>
+
+      <!-- Delivery Term -->
+      <div class="chart-card full">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Delivery Terms</div>
+            <div class="chart-subtitle">Répartition des incoterms (EXW, DAP, IPT…)</div>
+          </div>
+          <span class="chart-tag">Bar</span>
+        </div>
+        <div class="chart-wrap-sm"><canvas id="deliveryTermChart"></canvas></div>
+      </div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-card animate delay-3">
+      <div class="table-toolbar">
+        <div class="table-toolbar-title">📋 Tableau détaillé</div>
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Rechercher par Référence, Carrier, Pays…" oninput="filterTable()" />
+        </div>
+        <span class="table-count" id="table-count">— lignes</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Carrier</th>
+              <th>Country of Destination</th>
+              <th>Description</th>
+              <th>Transport Mode</th>
+              <th>Delivery Term</th>
+              <th>Air Way Bill</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span class="page-info" id="page-info">Page 1 / 1</span>
+        <div class="page-btns">
+          <button class="page-btn" id="btn-prev" onclick="changePage(-1)">← Préc.</button>
+          <button class="page-btn" id="btn-next" onclick="changePage(1)">Suiv. →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>LOGISTICS DASHBOARD · Données traitées localement · Aucune donnée envoyée</footer>
+</div>
+
+<script>
+  // ─── COLOR PALETTE ───
+  const PALETTE = [
+    '#00e5ff','#7c4dff','#ff6d3b','#00e676','#ffd740',
+    '#f06292','#40c4ff','#b2ff59','#ea80fc','#ff6e40',
+    '#64ffda','#ccff90','#80d8ff','#ff9e80','#e040fb'
+  ];
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: '#5a6070',
+          font: { family: 'DM Mono', size: 11 },
+          boxWidth: 12, boxHeight: 12, padding: 16
+        }
+      },
+      tooltip: {
+        backgroundColor: '#181c24',
+        borderColor: '#1e2330',
+        borderWidth: 1,
+        titleColor: '#e8eaf0',
+        bodyColor: '#5a6070',
+        titleFont: { family: 'Syne', size: 13, weight: '700' },
+        bodyFont: { family: 'DM Mono', size: 11 },
+        padding: 12,
+        cornerRadius: 8
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#5a6070', font: { family: 'DM Mono', size: 10 } },
+        grid: { color: 'rgba(30,35,48,0.8)', drawBorder: false }
+      },
+      y: {
+        ticks: { color: '#5a6070', font: { family: 'DM Mono', size: 10 } },
+        grid: { color: 'rgba(30,35,48,0.8)', drawBorder: false }
+      }
+    }
+  };
+
+  // ─── STATE ───
+  let allData = [];
+  let filteredData = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 50;
+  let charts = {};
+
+  // ─── DROP ZONE ───
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) processFile(e.target.files[0]);
+  });
+
+  // ─── READ FILE ───
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const wb = XLSX.read(evt.target.result);
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(sheet);
+
+      allData = raw.map(r => ({
+        Reference:     (r['Reference']             || r['REFERENCE']             || '').toString().trim(),
+        Carrier:       (r['Carrier']               || r['CARRIER']               || '').toString().trim(),
+        Country:       (r['Country of Destination']|| r['COUNTRY OF DESTINATION']|| '').toString().trim(),
+        Description:   (r['Description']           || r['DESCRIPTION']           || '').toString().trim(),
+        TransportMode: (r['Transport Mode']        || r['TRANSPORT MODE']        || '').toString().trim(),
+        DeliveryTerm:  (r['Delivery Term']         || r['DELIVERY TERM']         || '').toString().trim(),
+        AirWayBill:    (r['Air Way Bill']          || r['AIR WAY BILL']          || r['Airway Bill'] || '').toString().trim()
+      }));
+
+      filteredData = [...allData];
+      document.getElementById('dash-filename').textContent = file.name;
+
+      document.getElementById('upload-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+
+      buildKPIs();
+      buildCharts();
+      renderTable();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ─── KPIs ───
+  function buildKPIs() {
+    const d = allData;
+    document.getElementById('kpi-total').textContent = d.length.toLocaleString('fr-FR');
+    document.getElementById('kpi-carriers').textContent = new Set(d.map(r => r.Carrier).filter(Boolean)).size;
+    document.getElementById('kpi-countries').textContent = new Set(d.map(r => r.Country).filter(Boolean)).size;
+
+    const awbFilled = d.filter(r => r.AirWayBill).length;
+    const pct = d.length ? Math.round(awbFilled / d.length * 100) : 0;
+    document.getElementById('kpi-awb-pct').textContent = pct + '%';
+    document.getElementById('kpi-awb-sub').textContent = `${awbFilled} / ${d.length} renseignés`;
+    setTimeout(() => document.getElementById('awb-bar').style.width = pct + '%', 100);
+  }
+
+  // ─── COUNT BY ───
+  function countBy(data, key) {
+    return data.reduce((acc, r) => {
+      const k = r[key] || '(vide)';
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  function sortedEntries(obj, limit = 20) {
+    return Object.entries(obj)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit);
+  }
+
+  // ─── BUILD CHARTS ───
+  function buildCharts() {
+    destroyCharts();
+
+    // Carrier
+    const carrierEntries = sortedEntries(countBy(allData, 'Carrier'), 15);
+    charts.carrier = new Chart('carrierChart', {
+      type: 'bar',
+      data: {
+        labels: carrierEntries.map(e => e[0]),
+        datasets: [{
+          label: 'Expéditions',
+          data: carrierEntries.map(e => e[1]),
+          backgroundColor: PALETTE.slice(0, carrierEntries.length).map(c => c + '33'),
+          borderColor: PALETTE.slice(0, carrierEntries.length),
+          borderWidth: 1.5,
+          borderRadius: 5
+        }]
+      },
+      options: { ...chartDefaults }
+    });
+
+    // Transport Mode (Donut)
+    const tmEntries = sortedEntries(countBy(allData, 'TransportMode'));
+    charts.transport = new Chart('transportModeChart', {
+      type: 'doughnut',
+      data: {
+        labels: tmEntries.map(e => e[0]),
+        datasets: [{
+          data: tmEntries.map(e => e[1]),
+          backgroundColor: PALETTE.slice(0, tmEntries.length).map(c => c + 'bb'),
+          borderColor: '#0a0c10',
+          borderWidth: 3,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: chartDefaults.plugins.legend,
+          tooltip: chartDefaults.plugins.tooltip
+        }
+      }
+    });
+
+    // Country (horizontal bar)
+    const countryEntries = sortedEntries(countBy(allData, 'Country'), 20);
+    charts.country = new Chart('countryChart', {
+      type: 'bar',
+      data: {
+        labels: countryEntries.map(e => e[0]),
+        datasets: [{
+          label: 'Expéditions',
+          data: countryEntries.map(e => e[1]),
+          backgroundColor: '#7c4dff33',
+          borderColor: '#7c4dff',
+          borderWidth: 1.5,
+          borderRadius: 5
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        indexAxis: 'y',
+        scales: {
+          x: chartDefaults.scales.x,
+          y: {
+            ticks: { color: '#5a6070', font: { family: 'DM Mono', size: 10 } },
+            grid: { color: 'rgba(30,35,48,0.4)' }
+          }
+        }
+      }
+    });
+
+    // Delivery Term
+    const dtEntries = sortedEntries(countBy(allData, 'DeliveryTerm'));
+    charts.deliveryTerm = new Chart('deliveryTermChart', {
+      type: 'bar',
+      data: {
+        labels: dtEntries.map(e => e[0]),
+        datasets: [{
+          label: 'Expéditions',
+          data: dtEntries.map(e => e[1]),
+          backgroundColor: '#ff6d3b33',
+          borderColor: '#ff6d3b',
+          borderWidth: 1.5,
+          borderRadius: 5
+        }]
+      },
+      options: { ...chartDefaults }
+    });
+  }
+
+  function destroyCharts() {
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+  }
+
+  // ─── TABLE ───
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    filteredData = q
+      ? allData.filter(r =>
+          r.Reference.toLowerCase().includes(q) ||
+          r.Carrier.toLowerCase().includes(q) ||
+          r.Country.toLowerCase().includes(q) ||
+          r.Description.toLowerCase().includes(q) ||
+          r.DeliveryTerm.toLowerCase().includes(q)
+        )
+      : [...allData];
+    currentPage = 1;
+    renderTable();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const total = filteredData.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(currentPage, totalPages);
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const slice = filteredData.slice(start, start + PAGE_SIZE);
+
+    tbody.innerHTML = slice.map(r => `
+      <tr>
+        <td class="td-ref">${esc(r.Reference)}</td>
+        <td>${esc(r.Carrier)}</td>
+        <td>${esc(r.Country)}</td>
+        <td title="${esc(r.Description)}">${esc(r.Description).substring(0, 60)}${r.Description.length > 60 ? '…' : ''}</td>
+        <td>${tmBadge(r.TransportMode)}</td>
+        <td>${esc(r.DeliveryTerm)}</td>
+        <td class="${r.AirWayBill ? 'td-ok' : 'td-empty'}">${r.AirWayBill || '—'}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('table-count').textContent = `${total.toLocaleString('fr-FR')} ligne${total > 1 ? 's' : ''}`;
+    document.getElementById('page-info').textContent = `Page ${currentPage} / ${totalPages}`;
+    document.getElementById('btn-prev').disabled = currentPage === 1;
+    document.getElementById('btn-next').disabled = currentPage === totalPages;
+  }
+
+  function changePage(dir) {
+    const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+    currentPage = Math.max(1, Math.min(totalPages, currentPage + dir));
+    renderTable();
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function tmBadge(mode) {
+    const m = (mode || '').toUpperCase();
+    if (m.includes('AIR')) return `<span class="badge badge-air">${esc(mode)}</span>`;
+    if (m.includes('SEA') || m.includes('OC')) return `<span class="badge badge-sea">${esc(mode)}</span>`;
+    if (m.includes('LTL') || m.includes('TRUCK') || m.includes('ROAD')) return `<span class="badge badge-ltl">${esc(mode)}</span>`;
+    return mode ? `<span class="badge badge-other">${esc(mode)}</span>` : '—';
+  }
+
+  // ─── RESET ───
+  function resetDashboard() {
+    allData = []; filteredData = []; currentPage = 1;
+    document.getElementById('searchInput').value = '';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('upload-screen').style.display = 'flex';
+    document.getElementById('fileInput').value = '';
+    destroyCharts();
+  }
+</script>
+</body>
+</html>
