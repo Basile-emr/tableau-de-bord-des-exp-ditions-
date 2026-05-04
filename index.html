@@ -22,6 +22,7 @@
       --muted: #5a6070;
       --green: #00e676;
       --red: #ff1744;
+      --yellow: #ffd740;
       --font-head: 'Syne', sans-serif;
       --font-mono: 'DM Mono', monospace;
     }
@@ -283,6 +284,7 @@
     .kpi-card.c-purple::after { background: var(--accent2); }
     .kpi-card.c-orange::after { background: var(--accent3); }
     .kpi-card.c-green::after { background: var(--green); }
+    .kpi-card.c-yellow::after { background: var(--yellow); }
 
     .kpi-card:hover { transform: translateY(-2px); }
 
@@ -312,6 +314,7 @@
     .kpi-card.c-purple .kpi-value { color: var(--accent2); }
     .kpi-card.c-orange .kpi-value { color: var(--accent3); }
     .kpi-card.c-green .kpi-value { color: var(--green); }
+    .kpi-card.c-yellow .kpi-value { color: var(--yellow); }
 
     /* ─── AWB KPI ─── */
     .awb-bar-wrap {
@@ -638,6 +641,12 @@
         <div class="kpi-sub" id="kpi-awb-sub">chargement…</div>
         <div class="awb-bar-wrap"><div class="awb-bar-fill" id="awb-bar" style="width:0%"></div></div>
       </div>
+      <div class="kpi-card c-yellow">
+        <div class="kpi-label">Enlèvements clients</div>
+        <div class="kpi-value" id="kpi-pickup">—</div>
+        <div class="kpi-sub" id="kpi-pickup-sub">chargement…</div>
+        <div class="awb-bar-wrap"><div class="awb-bar-fill" id="pickup-bar" style="width:0%;background:linear-gradient(90deg,#ffd740,#ff6d3b)"></div></div>
+      </div>
     </div>
 
     <!-- CHARTS GRID -->
@@ -840,6 +849,19 @@
     document.getElementById('kpi-awb-pct').textContent = pct + '%';
     document.getElementById('kpi-awb-sub').textContent = `${awbFilled} / ${d.length} renseignés`;
     setTimeout(() => document.getElementById('awb-bar').style.width = pct + '%', 100);
+
+    // Enlèvements clients : Air Way Bill contient "enlèvement" ou "client" (texte) mais pas un numéro pur
+    const PICKUP_AWB_KEYWORDS = ['enlèvement','enlevement','client','pickup','pick up','pick-up','will call','collect'];
+    const pickups = d.filter(r => {
+      const awb = r.AirWayBill.toLowerCase().trim();
+      if (!awb) return false; // vide = non documenté, pas un enlèvement client
+      if (PICKUP_AWB_KEYWORDS.some(k => awb.includes(k))) return true;
+      return false;
+    });
+    const pickupPct = d.length ? Math.round(pickups.length / d.length * 100) : 0;
+    document.getElementById('kpi-pickup').textContent = pickups.length.toLocaleString('fr-FR');
+    document.getElementById('kpi-pickup-sub').textContent = `${pickupPct}% des expéditions`;
+    setTimeout(() => document.getElementById('pickup-bar').style.width = pickupPct + '%', 150);
   }
 
   // ─── COUNT BY ───
