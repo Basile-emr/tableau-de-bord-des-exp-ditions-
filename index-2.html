@@ -1,0 +1,1723 @@
+ <!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Freight Intelligence Report</title>
+  <script src=https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js></script>
+  <script src=https://cdn.jsdelivr.net/npm/chart.js></script>
+  <link href=https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f3f6fa;
+      --surface: #ffffff;
+      --surface2: #eef2f7;
+      --border: #dde4ec;
+      --primary: #004487;
+      --primary2: #285f9a;
+      --primary-tint: #eaf1f9;
+      --text: #16212e;
+      --muted: #64748b;
+      --green: #15803d;
+      --green-tint: #e8f5ec;
+      --red: #b91c1c;
+      --red-tint: #fbebeb;
+      --amber: #b45309;
+      --amber-tint: #fbf1e4;
+      --purple: #6d28d9;
+      --purple-tint: #f1ebfc;
+      --font-head: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-head);
+      overflow-x: hidden;
+    }
+
+    #app { position: relative; z-index: 1; min-height: 100vh; }
+
+    /* ─── HEADER ─── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 40px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(16,36,64,0.04);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-mark {
+      width: 34px; height: 34px;
+      background: var(--primary);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      font-family: var(--font-head);
+      letter-spacing: 0;
+    }
+
+    .logo-text {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .header-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ─── UPLOAD ZONE ─── */
+    #upload-screen {
+      min-height: calc(100vh - 66px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .upload-card {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .upload-card h2 {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .upload-card p {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    #drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 12px;
+      padding: 48px 40px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--surface);
+    }
+
+    #drop-zone:hover, #drop-zone.drag-over {
+      border-color: var(--primary);
+      background: var(--primary-tint);
+    }
+
+    .drop-icon {
+      width: 40px; height: 40px;
+      margin: 0 auto 14px;
+      border-radius: 8px;
+      background: var(--primary-tint);
+      color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .drop-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .drop-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    #fileInput { display: none; }
+
+    .btn-upload {
+      margin-top: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-family: var(--font-head);
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      padding: 11px 24px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-upload:hover { background: var(--primary2); }
+
+    .supported-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 18px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+
+    /* ─── DASHBOARD ─── */
+    #dashboard { display: none; padding: 28px 40px 56px; max-width: 1400px; margin: 0 auto; }
+
+    /* ─── TOP BAR ─── */
+    .dash-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dash-title {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .dash-title strong { color: var(--text); font-family: var(--font-head); font-size: 20px; font-weight: 800; letter-spacing: 0; display: block; margin-top: 2px; }
+
+    .btn-reset {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-head);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-reset:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ─── INFO NOTE ─── */
+    .info-note {
+      background: var(--primary-tint);
+      border: 1px solid #cfe0f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #34506e;
+      line-height: 1.55;
+    }
+    .info-note strong { color: var(--primary); }
+
+    /* ─── KPI ROW ─── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      border-top: 3px solid var(--primary);
+    }
+    .kpi-card.c-alt { border-top-color: var(--primary2); }
+    .kpi-card.c-green { border-top-color: var(--green); }
+    .kpi-card.c-amber { border-top-color: var(--amber); }
+    .kpi-card.c-purple { border-top-color: var(--purple); }
+
+    .kpi-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .kpi-sub {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    /* ─── AWB KPI ─── */
+    .awb-bar-wrap {
+      margin-top: 10px;
+      background: var(--surface2);
+      border-radius: 4px;
+      height: 5px;
+      overflow: hidden;
+    }
+
+    .awb-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--primary);
+      transition: width 0.8s cubic-bezier(.25,.8,.25,1);
+    }
+
+    /* ─── CHARTS GRID ─── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      position: relative;
+    }
+
+    .chart-card.full { grid-column: 1 / -1; }
+
+    .chart-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .chart-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--text);
+    }
+
+    .chart-subtitle {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .chart-tag {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .chart-wrap { position: relative; height: 250px; }
+    .chart-wrap-sm { position: relative; height: 200px; }
+
+    .mini-charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* ─── DONUT + SIDE VALUES ─── */
+    .donut-flex {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .donut-chart-col {
+      flex: 1 1 48%;
+      min-width: 0;
+    }
+    .donut-legend-list {
+      flex: 1 1 52%;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .donut-legend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .donut-legend-name {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-head);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    .donut-legend-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .donut-legend-value {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .donut-legend-pct {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    @media (max-width: 560px) {
+      .donut-flex { flex-direction: column; }
+      .donut-chart-col, .donut-legend-list { flex: 1 1 auto; width: 100%; }
+    }
+
+    .mini-chart-block .chart-title { font-size: 11.5px; margin-bottom: 10px; }
+
+    .chart-footnote {
+      margin-top: 12px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.6;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    .chart-footnote strong { color: var(--text); }
+
+    /* ─── FILTER SELECT ─── */
+    .filter-select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      outline: none;
+    }
+    .filter-select:focus { border-color: var(--primary); }
+
+    .active-filter-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-tint);
+      color: var(--primary);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 5px;
+      margin-bottom: 14px;
+    }
+    .active-filter-tag button {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    /* ─── TABLE ─── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .table-toolbar-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 12px;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .search-wrap input {
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      width: 100%;
+    }
+
+    .search-wrap input::placeholder { color: var(--muted); }
+
+    .search-icon { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+
+    .table-count {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .table-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+    .table-scroll.sm { max-height: 280px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--surface2);
+    }
+
+    thead th {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--surface2);
+      transition: background 0.1s;
+    }
+
+    tbody tr:hover { background: var(--primary-tint); }
+
+    tbody td {
+      padding: 10px 16px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      white-space: nowrap;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .td-ref { color: var(--primary); font-weight: 600; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-air { background: var(--primary-tint); color: var(--primary); }
+    .badge-sea { background: #eef0f5; color: #3f4a5c; }
+    .badge-ltl { background: var(--amber-tint); color: var(--amber); }
+    .badge-other { background: var(--surface2); color: var(--muted); }
+
+    .badge-awb-numeric { background: var(--green-tint); color: var(--green); }
+    .badge-awb-pickup { background: var(--amber-tint); color: var(--amber); }
+    .badge-awb-grouped { background: #eef0f8; color: var(--primary2); }
+    .badge-awb-forwarder { background: var(--primary-tint); color: var(--primary); }
+    .badge-awb-empty { background: var(--red-tint); color: var(--red); }
+
+    .badge-inco { background: var(--primary-tint); color: var(--primary); }
+    .badge-inco-unknown { background: var(--red-tint); color: var(--red); }
+
+    .badge-manual { background: var(--purple-tint); color: var(--purple); }
+    .badge-auto { background: var(--green-tint); color: var(--green); }
+
+    /* ─── PAGINATION ─── */
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 22px;
+      border-top: 1px solid var(--border);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .page-info {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+
+    .page-btns { display: flex; gap: 6px; }
+
+    .page-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .page-btn:hover, .page-btn.active { border-color: var(--primary); color: var(--primary); }
+
+    canvas { max-width: 100%; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center;
+      padding: 18px 40px;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+      background: var(--surface);
+    }
+
+    @media (max-width: 768px) {
+      header { padding: 14px 20px; }
+      #dashboard { padding: 18px; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-card.full { grid-column: 1; }
+      .mini-charts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">E</div>
+      <div>
+        <div class="logo-text">EMERSON</div>
+        <div class="logo-sub">Freight Intelligence Report</div>
+      </div>
+    </div>
+    <span class="header-tag">Global Trade Compliance · v2.1</span>
+  </header>
+
+  <!-- ─── UPLOAD SCREEN ─── -->
+  <div id="upload-screen">
+    <div class="upload-card">
+      <h2>Rapport logistique</h2>
+      <p>Traitement 100% local — aucune donnée n'est envoyée.</p>
+
+      <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept=".xls,.xlsx" />
+        <div class="drop-icon">XLS</div>
+        <span class="drop-label">Glisser un fichier Excel</span>
+        <p class="drop-sub">ou cliquer pour sélectionner</p>
+      </div>
+
+      <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
+        Ouvrir un fichier
+      </button>
+
+      <div>
+        <span class="supported-tag"><span class="dot"></span> .xlsx / .xls · Zéro stockage</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── DASHBOARD ─── -->
+  <div id="dashboard">
+
+    <div class="dash-topbar">
+      <div class="dash-title">
+        Vue d'ensemble
+        <strong id="dash-filename">—</strong>
+      </div>
+      <button class="btn-reset" onclick="resetDashboard()">Nouveau fichier</button>
+    </div>
+
+    <div class="info-note">
+      <strong>AWB :</strong> le champ mélange n° de suivi réel, sous-traitant et groupage — répartition dans le graphique dédié, et les enlèvements organisés sont listés séparément avec leur transporteur.
+      <strong>Incoterms :</strong> codes internes convertis en Incoterms® 2020 selon le référentiel fourni (DAT renommé DPU en 2020).
+      <strong>Origine :</strong> une expédition est considérée <strong>manuelle</strong> lorsque son numéro de commande commence par "S".
+    </div>
+
+    <div id="active-filter-row" style="display:none;">
+      <span class="active-filter-tag" id="active-filter-tag">
+        <span id="active-filter-label"></span>
+        <button onclick="applyMonthFilter('all')" title="Retirer le filtre">✕</button>
+      </span>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Total expéditions</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub">références uniques</div>
+      </div>
+      <div class="kpi-card c-alt">
+        <div class="kpi-label">Carriers actifs</div>
+        <div class="kpi-value" id="kpi-carriers">—</div>
+        <div class="kpi-sub">transporteurs</div>
+      </div>
+      <div class="kpi-card c-alt">
+        <div class="kpi-label">Destinations</div>
+        <div class="kpi-value" id="kpi-countries">—</div>
+        <div class="kpi-sub">pays</div>
+      </div>
+      <div class="kpi-card c-purple">
+        <div class="kpi-label">Expéditions manuelles</div>
+        <div class="kpi-value" id="kpi-manual">—</div>
+        <div class="kpi-sub" id="kpi-manual-sub">chargement…</div>
+      </div>
+      <div class="kpi-card c-amber">
+        <div class="kpi-label">AIR sans traçabilité — à traiter</div>
+        <div class="kpi-value" id="kpi-awb-todo">—</div>
+        <div class="kpi-sub" id="kpi-awb-todo-sub">chargement…</div>
+        <div class="awb-bar-wrap"><div class="awb-bar-fill" id="awb-todo-bar" style="width:0%;background:var(--amber)"></div></div>
+      </div>
+    </div>
+
+    <!-- CHARTS GRID -->
+    <div class="charts-grid">
+
+      <!-- Analyse des expéditions -->
+      <div class="chart-card full">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Analyse des expéditions</div>
+            <div class="chart-subtitle">Volumes par mois et par semaine — sélectionner un mois filtre tout le dashboard</div>
+          </div>
+          <select class="filter-select" id="monthFilterSelect" onchange="applyMonthFilter(this.value)">
+            <option value="all">Tous les mois</option>
+          </select>
+        </div>
+        <div class="mini-charts-grid">
+          <div class="mini-chart-block">
+            <div class="chart-title">Expéditions par mois</div>
+            <div class="chart-wrap-sm"><canvas id="shipmentsByMonthChart"></canvas></div>
+          </div>
+          <div class="mini-chart-block">
+            <div class="chart-title">Expéditions par semaine</div>
+            <div class="chart-wrap-sm"><canvas id="shipmentsByWeekChart"></canvas></div>
+          </div>
+        </div>
+        <div class="chart-footnote" id="dateCoverage-footnote"></div>
+      </div>
+
+      <!-- Carrier -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Enlèvements par transporteur</div>
+            <div class="chart-subtitle">Jet Plus et FedEx affichés séparément (même groupe logistique)</div>
+          </div>
+          <span class="chart-tag">Bar</span>
+        </div>
+        <div class="chart-wrap"><canvas id="carrierChart"></canvas></div>
+        <div class="chart-footnote" id="carrier-footnote"></div>
+      </div>
+
+      <!-- Carrier recap donut -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Récapitulatif transporteurs</div>
+            <div class="chart-subtitle">Part de chaque transporteur — chiffres toujours visibles</div>
+          </div>
+          <span class="chart-tag">Donut</span>
+        </div>
+        <div class="donut-flex">
+          <div class="chart-wrap donut-chart-col"><canvas id="carrierDonutChart"></canvas></div>
+          <div class="donut-legend-list" id="carrierDonutLegend"></div>
+        </div>
+      </div>
+
+      <!-- Transport Mode -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Transport Mode</div>
+            <div class="chart-subtitle">Air · LTL · PAR… — chiffres toujours visibles</div>
+          </div>
+          <span class="chart-tag">Donut</span>
+        </div>
+        <div class="donut-flex">
+          <div class="chart-wrap donut-chart-col"><canvas id="transportModeChart"></canvas></div>
+          <div class="donut-legend-list" id="transportModeLegend"></div>
+        </div>
+      </div>
+
+      <!-- Manual vs Automatic donut -->
+      <div class="chart-card">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Manuel vs Automatique</div>
+            <div class="chart-subtitle">N° de commande commençant par "S" = manuel — chiffres toujours visibles</div>
+          </div>
+          <span class="chart-tag">Donut</span>
+        </div>
+        <div class="donut-flex">
+          <div class="chart-wrap donut-chart-col"><canvas id="manualAutoChart"></canvas></div>
+          <div class="donut-legend-list" id="manualAutoLegend"></div>
+        </div>
+      </div>
+
+      <!-- AWB Breakdown -->
+      <div class="chart-card full">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Répartition du champ AWB</div>
+            <div class="chart-subtitle">Numéros de suivi réels vs. autres mentions — hors enlèvements (liste dédiée ci-dessous)</div>
+          </div>
+          <span class="chart-tag">Bar</span>
+        </div>
+        <div class="chart-wrap-sm"><canvas id="awbChart"></canvas></div>
+      </div>
+
+      <!-- Pickup list -->
+      <div class="chart-card full">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Liste détaillée des enlèvements</div>
+            <div class="chart-subtitle" id="pickup-subtitle">Expéditions dont le suivi est un enlèvement organisé, avec transporteur associé</div>
+          </div>
+          <span class="chart-tag" id="pickup-count">0</span>
+        </div>
+        <div class="table-scroll sm">
+          <table>
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Transporteur</th>
+                <th>Détail enlèvement</th>
+              </tr>
+            </thead>
+            <tbody id="pickupTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Country full width -->
+      <div class="chart-card full">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Destinations</div>
+            <div class="chart-subtitle">Répartition géographique complète des expéditions — valeurs exactes affichées</div>
+          </div>
+          <span class="chart-tag">Bar</span>
+        </div>
+        <div class="chart-wrap" id="countryChartWrap"><canvas id="countryChart"></canvas></div>
+      </div>
+
+      <!-- Delivery Term -->
+      <div class="chart-card full">
+        <div class="chart-card-head">
+          <div>
+            <div class="chart-title">Delivery Terms — Incoterms® 2020</div>
+            <div class="chart-subtitle">Codes internes convertis selon référentiel · valeurs exactes affichées</div>
+          </div>
+          <span class="chart-tag">Bar</span>
+        </div>
+        <div class="chart-wrap-sm"><canvas id="deliveryTermChart"></canvas></div>
+        <div class="chart-footnote" id="incoterm-footnote"></div>
+      </div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div class="table-toolbar-title">Tableau détaillé</div>
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input type="text" id="searchInput" placeholder="Référence, Carrier, Pays…" oninput="filterTable()" />
+        </div>
+        <span class="table-count" id="table-count">— lignes</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Carrier</th>
+              <th>Origine</th>
+              <th>Destination</th>
+              <th>Description</th>
+              <th>Mode</th>
+              <th>Incoterm 2020</th>
+              <th>Statut AWB</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span class="page-info" id="page-info">Page 1 / 1</span>
+        <div class="page-btns">
+          <button class="page-btn" id="btn-prev" onclick="changePage(-1)">← Préc.</button>
+          <button class="page-btn" id="btn-next" onclick="changePage(1)">Suiv. →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>EMERSON · Freight Intelligence Report · Données traitées localement</footer>
+</div>
+
+<script>
+  // ─── CHART PALETTE (bleu Emerson, professionnel) ───
+  const PALETTE = [
+    '#004487','#285f9a','#4a80b5','#0d5c8c','#6b8caa',
+    '#3f5b76','#7aa7cf','#8fa7bd','#0a3d62','#5a7897',
+    '#a8bdd1','#1e6091','#3a6ea5','#89a3bd','#6d90ab'
+  ];
+
+  const FEDEX_GROUP_COLORS = { 'FedEx': '#004487', 'Jet Plus': '#7aa7cf' };
+
+  // ─── DELIVERY TERM → INCOTERMS 2020 ───
+  // Référentiel fourni par le client (codes internes -> incoterms 2020).
+  // DAT a été remplacé par DPU dans les Incoterms 2020.
+  const DELIVERY_TERM_MAP = {
+    'INT': 'CPT', '2PT': 'CPT', 'IPT': 'CPT',
+    'I01': 'DDP', '2DP': 'DDP', 'IDD': 'DDP',
+    'INA': 'DAP', '2AP': 'DAP', 'I0D': 'DAP',
+    '2CA': 'FCA', 'I02': 'FCA', 'I10': 'FCA',
+    'INX': 'EXW', '2XW': 'EXW',
+    'ICO': 'CIF',
+    'IO2': 'CIP', 'I0C': 'CIP', '2IP': 'CIP',
+    '2AT': 'DPU', 'I20': 'DPU',
+    'I0F': 'FOB', 'IFO': 'FOB', '2OB': 'FOB',
+    'IN1': 'CFR', '2FR': 'CFR', 'ICF': 'CFR'
+  };
+  const INCOTERM_NAMES = {
+    EXW: 'Ex Works', FCA: 'Free Carrier', CPT: 'Carriage Paid To',
+    CIP: 'Carriage and Insurance Paid To', DAP: 'Delivered at Place',
+    DPU: 'Delivered at Place Unloaded', DDP: 'Delivered Duty Paid',
+    FAS: 'Free Alongside Ship', FOB: 'Free on Board',
+    CFR: 'Cost and Freight', CIF: 'Cost, Insurance and Freight'
+  };
+
+  function mapDeliveryTerm(code) {
+    if (!code) return { term: null, raw: code };
+    return { term: DELIVERY_TERM_MAP[code] || null, raw: code };
+  }
+
+  // ─── CARRIER LABELS (affichés séparément, plus de fusion Jet+FedEx) ───
+  const CARRIER_LABELS = {
+    'FCE000': 'Non assigné',
+    'QDHLXML': 'DHL Express',
+    'QDACHSER': 'Dachser'
+  };
+
+  function normalizeCarrier(carrier, route) {
+    const c = (carrier || '').toUpperCase().trim();
+    const r = (route || '').toUpperCase().trim();
+    const hay = c + ' ' + r;
+    if (!c) return { group: 'Non renseigné', sub: null };
+    if (/FEDEX|FDX/.test(hay)) return { group: 'FedEx', sub: 'FedEx Group' };
+    if (/JET/.test(hay)) return { group: 'Jet Plus', sub: 'FedEx Group' };
+    if (CARRIER_LABELS[carrier]) return { group: CARRIER_LABELS[carrier], sub: null };
+    return { group: carrier, sub: null };
+  }
+
+  // ─── AIR WAY BILL CLASSIFICATION ───
+  function classifyAWB(raw) {
+    const v = (raw || '').trim();
+    if (!v) return { cat: 'empty', label: 'Non documenté' };
+    const digitsOnly = v.replace(/\s+/g, '');
+    if (/^\d{5,}$/.test(digitsOnly)) return { cat: 'numeric', label: 'N° de suivi réel', detail: v };
+    if (/enl[eè]vement/i.test(v)) return { cat: 'pickup', label: 'Enlèvement organisé', detail: v.replace(/enl[eè]vement/i, '').trim() || v };
+    if (/\bTRAX\b|\bTRX\b/i.test(v)) return { cat: 'grouped', label: 'Groupé (autre réf.)', detail: v };
+    return { cat: 'forwarder', label: 'Sous-traitant mentionné', detail: v };
+  }
+
+  // ─── ORIGIN: manuel vs automatique ───
+  function isManualOrder(orderNumber) {
+    return /^S/i.test((orderNumber || '').trim());
+  }
+
+  // ─── DATE PARSING (mois / semaine) ───
+  function parseShipDate(v) {
+    if (!v) return null;
+    if (v instanceof Date) return isNaN(v) ? null : v;
+    const s = String(v).trim();
+    if (!s) return null;
+    const dmy = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if (dmy) {
+      let [, dd, mm, yyyy] = dmy;
+      if (yyyy.length === 2) yyyy = '20' + yyyy;
+      const d = new Date(+yyyy, +mm - 1, +dd);
+      if (!isNaN(d)) return d;
+    }
+    const iso = new Date(s);
+    if (!isNaN(iso)) return iso;
+    return null;
+  }
+
+  function monthKeyOf(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function monthLabelOf(key) {
+    const [y, m] = key.split('-').map(Number);
+    const label = new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+
+  function isoWeekOf(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return { year: d.getUTCFullYear(), week: weekNo };
+  }
+
+  function weekKeyOf(date) {
+    const { year, week } = isoWeekOf(date);
+    return `${year}-S${String(week).padStart(2, '0')}`;
+  }
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: '#64748b',
+          font: { family: 'IBM Plex Mono', size: 10.5 },
+          boxWidth: 11, boxHeight: 11, padding: 14
+        }
+      },
+      tooltip: {
+        backgroundColor: '#16212e',
+        borderColor: '#dde4ec',
+        borderWidth: 0,
+        titleColor: '#ffffff',
+        bodyColor: '#cbd5e1',
+        titleFont: { family: 'Inter', size: 12.5, weight: '700' },
+        bodyFont: { family: 'IBM Plex Mono', size: 10.5 },
+        padding: 11,
+        cornerRadius: 6
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#64748b', font: { family: 'IBM Plex Mono', size: 9.5 } },
+        grid: { color: '#eef2f7', drawBorder: false }
+      },
+      y: {
+        ticks: { color: '#64748b', font: { family: 'IBM Plex Mono', size: 9.5 } },
+        grid: { color: '#eef2f7', drawBorder: false }
+      }
+    }
+  };
+
+  // ─── VALUE LABEL PLUGIN (affiche la valeur exacte sur/à côté des barres) ───
+  const valueLabelPlugin = {
+    id: 'valueLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const horizontal = chart.options.indexAxis === 'y';
+      ctx.save();
+      ctx.font = '600 10px "IBM Plex Mono", monospace';
+      ctx.fillStyle = '#16212e';
+      chart.data.datasets.forEach((dataset, dsIndex) => {
+        const meta = chart.getDatasetMeta(dsIndex);
+        if (meta.hidden) return;
+        meta.data.forEach((bar, index) => {
+          const value = dataset.data[index];
+          if (value === undefined || value === null) return;
+          const pos = bar.tooltipPosition();
+          const label = Number(value).toLocaleString('fr-FR');
+          if (horizontal) {
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, pos.x + 6, pos.y);
+          } else {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(label, pos.x, pos.y - 6);
+          }
+        });
+      });
+      ctx.restore();
+    }
+  };
+
+  // ─── STATE ───
+  let allData = [];
+  let scopedData = [];
+  let filteredData = [];
+  let monthFilter = 'all';
+  let currentPage = 1;
+  const PAGE_SIZE = 50;
+  let charts = {};
+
+  // ─── DROP ZONE ───
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) processFile(e.target.files[0]);
+  });
+
+  // ─── READ FILE ───
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const wb = XLSX.read(evt.target.result, { cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(sheet);
+
+      allData = raw.map(r => {
+        const reference = (r['Reference'] || r['REFERENCE'] || '').toString().trim();
+        const dateRaw =
+          r['Despatch Date'] ?? r['DESPATCH DATE'] ??
+          r['Date'] ?? r['DATE'] ?? r['Shipment Date'] ?? r['SHIPMENT DATE'] ??
+          r['Ship Date'] ?? r['SHIP DATE'] ?? r['Pickup Date'] ?? r['PICKUP DATE'] ??
+          r['Collection Date'] ?? r['COLLECTION DATE'] ?? r['Creation Date'] ?? r['CREATION DATE'] ??
+          r['Order Date'] ?? r['ORDER DATE'] ?? r["Date d'expédition"] ?? r['Date Expedition'] ??
+          r['DATE EXPEDITION'] ?? r['Date de commande'] ?? r['DATE DE COMMANDE'] ?? '';
+        const shipDate = parseShipDate(dateRaw);
+
+        return {
+          Reference:     reference,
+          Carrier:       (r['Carrier']               || r['CARRIER']               || '').toString().trim(),
+          Route:         (r['Route']                 || r['ROUTE']                 || '').toString().trim(),
+          Country:       (r['Country of Destination']|| r['COUNTRY OF DESTINATION']|| '').toString().trim().toUpperCase(),
+          Description:   (r['Description']           || r['DESCRIPTION']           || '').toString().trim(),
+          TransportMode: (r['Transport Mode']        || r['TRANSPORT MODE']        || '').toString().trim(),
+          DeliveryTerm:  (r['Delivery Term']         || r['DELIVERY TERM']         || '').toString().trim(),
+          AirWayBill:    (r['Air Way Bill']          || r['AIR WAY BILL']          || r['Airway Bill'] || '').toString().trim(),
+          OrderNumber:   (r['Order Number']          || r['ORDER NUMBER']          || '').toString().trim(),
+          IsManual:      isManualOrder(reference),
+          ShipDate:      shipDate,
+          MonthKey:      shipDate ? monthKeyOf(shipDate) : null,
+          WeekKey:       shipDate ? weekKeyOf(shipDate) : null
+        };
+      });
+
+      monthFilter = 'all';
+      document.getElementById('dash-filename').textContent = file.name;
+
+      document.getElementById('upload-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+
+      populateMonthFilter();
+      applyMonthFilter('all');
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ─── MONTH FILTER (synchronise tous les graphiques) ───
+  function populateMonthFilter() {
+    const counts = {};
+    allData.forEach(r => { if (r.MonthKey) counts[r.MonthKey] = (counts[r.MonthKey] || 0) + 1; });
+    const keys = Object.keys(counts).sort();
+    const select = document.getElementById('monthFilterSelect');
+    select.innerHTML = `<option value="all">Tous les mois (${allData.length})</option>` +
+      keys.map(k => `<option value="${k}">${esc(monthLabelOf(k))} (${counts[k]})</option>`).join('');
+  }
+
+  function applyMonthFilter(value) {
+    monthFilter = value;
+    document.getElementById('monthFilterSelect').value = value;
+
+    const tagRow = document.getElementById('active-filter-row');
+    if (value === 'all') {
+      tagRow.style.display = 'none';
+      scopedData = [...allData];
+    } else {
+      tagRow.style.display = 'block';
+      document.getElementById('active-filter-label').textContent = `Filtre actif : ${monthLabelOf(value)}`;
+      scopedData = allData.filter(r => r.MonthKey === value);
+    }
+
+    currentPage = 1;
+    buildKPIs(scopedData);
+    buildCharts(scopedData);
+    filterTable();
+  }
+
+  // ─── KPIs ───
+  function buildKPIs(data) {
+    const d = data;
+    document.getElementById('kpi-total').textContent = d.length.toLocaleString('fr-FR');
+    document.getElementById('kpi-carriers').textContent = new Set(d.map(r => r.Carrier).filter(Boolean)).size;
+    document.getElementById('kpi-countries').textContent = new Set(d.map(r => r.Country).filter(Boolean)).size;
+
+    const manualCount = d.filter(r => r.IsManual).length;
+    const manualPct = d.length ? Math.round(manualCount / d.length * 100) : 0;
+    document.getElementById('kpi-manual').textContent = manualCount.toLocaleString('fr-FR');
+    document.getElementById('kpi-manual-sub').textContent = `${manualPct}% (auto : ${(d.length - manualCount).toLocaleString('fr-FR')})`;
+
+    // "À traiter" : expéditions AIR dont le champ AWB est totalement vide
+    // (aucune trace de suivi, ni numéro, ni transitaire, ni enlèvement).
+    const airRows = d.filter(r => (r.TransportMode || '').toUpperCase() === 'AIR');
+    const airEmpty = airRows.filter(r => classifyAWB(r.AirWayBill).cat === 'empty');
+    const todoPct = airRows.length ? Math.round(airEmpty.length / airRows.length * 100) : 0;
+    document.getElementById('kpi-awb-todo').textContent = airEmpty.length.toLocaleString('fr-FR');
+    document.getElementById('kpi-awb-todo-sub').textContent = `${todoPct}% des ${airRows.length} expéditions AIR`;
+    setTimeout(() => document.getElementById('awb-todo-bar').style.width = todoPct + '%', 100);
+  }
+
+  // ─── COUNT BY ───
+  function countBy(data, key) {
+    return data.reduce((acc, r) => {
+      const k = r[key] || '(vide)';
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+  }
+
+  function sortedEntries(obj, limit = Infinity) {
+    return Object.entries(obj)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit);
+  }
+
+  function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ─── DONUT SIDE LEGEND (valeurs exactes toujours visibles, pas seulement au survol) ───
+  function renderDonutLegend(containerId, labels, values, colors) {
+    const total = values.reduce((a, b) => a + b, 0);
+    const el = document.getElementById(containerId);
+    el.innerHTML = labels.map((label, i) => {
+      const v = values[i];
+      const pct = total ? Math.round(v / total * 100) : 0;
+      return `
+        <div class="donut-legend-item">
+          <span class="donut-legend-name">
+            <span class="donut-legend-dot" style="background:${colors[i]}"></span>${esc(label)}
+          </span>
+          <span class="donut-legend-value">${v.toLocaleString('fr-FR')} <span class="donut-legend-pct">(${pct}%)</span></span>
+        </div>
+      `;
+    }).join('') || '<span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">Aucune donnée</span>';
+  }
+
+  // ─── BUILD CHARTS ─── (data = jeu de données actif, filtré par mois si besoin)
+  function buildCharts(data) {
+    destroyCharts();
+
+    buildShipmentAnalysisCharts(data);
+
+    // Carrier — Jet Plus et FedEx affichés séparément
+    const carrierStats = {};
+    data.forEach(r => {
+      const { group, sub } = normalizeCarrier(r.Carrier, r.Route);
+      if (!carrierStats[group]) carrierStats[group] = { total: 0, sub };
+      carrierStats[group].total++;
+    });
+    const carrierEntries = Object.entries(carrierStats).sort((a, b) => b[1].total - a[1].total).slice(0, 15);
+    let paletteCursor = 0;
+    const carrierColors = carrierEntries.map(e => {
+      if (FEDEX_GROUP_COLORS[e[0]]) return FEDEX_GROUP_COLORS[e[0]];
+      return PALETTE[(paletteCursor++ % PALETTE.length)];
+    });
+
+    charts.carrier = new Chart('carrierChart', {
+      type: 'bar',
+      data: {
+        labels: carrierEntries.map(e => e[0]),
+        datasets: [{
+          label: 'Expéditions',
+          data: carrierEntries.map(e => e[1].total),
+          backgroundColor: carrierColors,
+          borderRadius: 4
+        }]
+      },
+      plugins: [valueLabelPlugin],
+      options: {
+        ...chartDefaults,
+        layout: { padding: { top: 22 } },
+        plugins: { ...chartDefaults.plugins, legend: { display: false } }
+      }
+    });
+
+    const fedexParts = carrierEntries.filter(e => e[1].sub === 'FedEx Group');
+    const footnote = document.getElementById('carrier-footnote');
+    if (fedexParts.length) {
+      const total = fedexParts.reduce((s, e) => s + e[1].total, 0);
+      const parts = fedexParts.map(([k, v]) => `${k}: ${v.total}`);
+      footnote.innerHTML = `<strong>FedEx Group</strong> — ${esc(parts.join(' · '))} (total : ${total})`;
+    } else {
+      footnote.innerHTML = `Aucun enlèvement Jet Plus ou FedEx détecté sur cette période.`;
+    }
+
+    // Carrier recap donut
+    charts.carrierDonut = new Chart('carrierDonutChart', {
+      type: 'doughnut',
+      data: {
+        labels: carrierEntries.map(e => e[0]),
+        datasets: [{
+          data: carrierEntries.map(e => e[1].total),
+          backgroundColor: carrierColors,
+          borderColor: '#ffffff',
+          borderWidth: 3,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: { display: false },
+          tooltip: chartDefaults.plugins.tooltip
+        }
+      }
+    });
+    renderDonutLegend('carrierDonutLegend', carrierEntries.map(e => e[0]), carrierEntries.map(e => e[1].total), carrierColors);
+
+    // Transport Mode (Donut)
+    const tmEntries = sortedEntries(countBy(data, 'TransportMode'));
+    const tmColors = PALETTE.slice(0, tmEntries.length);
+    charts.transport = new Chart('transportModeChart', {
+      type: 'doughnut',
+      data: {
+        labels: tmEntries.map(e => e[0]),
+        datasets: [{
+          data: tmEntries.map(e => e[1]),
+          backgroundColor: tmColors,
+          borderColor: '#ffffff',
+          borderWidth: 3,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: { display: false },
+          tooltip: chartDefaults.plugins.tooltip
+        }
+      }
+    });
+    renderDonutLegend('transportModeLegend', tmEntries.map(e => e[0]), tmEntries.map(e => e[1]), tmColors);
+
+    // Manuel vs Automatique (Donut)
+    const manualCount = data.filter(r => r.IsManual).length;
+    const autoCount = data.length - manualCount;
+    const manualAutoColors = ['#6d28d9', '#15803d'];
+    charts.manualAuto = new Chart('manualAutoChart', {
+      type: 'doughnut',
+      data: {
+        labels: ['Manuel (n° commençant par S)', 'Automatique'],
+        datasets: [{
+          data: [manualCount, autoCount],
+          backgroundColor: manualAutoColors,
+          borderColor: '#ffffff',
+          borderWidth: 3,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '62%',
+        plugins: {
+          legend: { display: false },
+          tooltip: chartDefaults.plugins.tooltip
+        }
+      }
+    });
+    renderDonutLegend('manualAutoLegend', ['Manuel (n° commençant par S)', 'Automatique'], [manualCount, autoCount], manualAutoColors);
+
+    // AWB — répartition réelle du champ (hors enlèvements, listés séparément)
+    const AWB_CATS = [
+      { cat: 'numeric',   label: 'N° de suivi réel',      color: '#15803d' },
+      { cat: 'forwarder', label: 'Transitaire mentionné', color: '#004487' },
+      { cat: 'grouped',   label: 'Groupé (autre réf.)',   color: '#285f9a' },
+      { cat: 'empty',     label: 'Non documenté',         color: '#b91c1c' }
+    ];
+    const awbCounts = {};
+    data.forEach(r => { const c = classifyAWB(r.AirWayBill).cat; awbCounts[c] = (awbCounts[c] || 0) + 1; });
+    const awbEntries = AWB_CATS.filter(c => awbCounts[c.cat]);
+
+    charts.awb = new Chart('awbChart', {
+      type: 'bar',
+      data: {
+        labels: awbEntries.map(c => c.label),
+        datasets: [{
+          label: 'Expéditions',
+          data: awbEntries.map(c => awbCounts[c.cat]),
+          backgroundColor: awbEntries.map(c => c.color),
+          borderRadius: 4
+        }]
+      },
+      plugins: [valueLabelPlugin],
+      options: {
+        ...chartDefaults,
+        indexAxis: 'y',
+        layout: { padding: { right: 46 } },
+        plugins: { ...chartDefaults.plugins, legend: { display: false } },
+        scales: {
+          x: chartDefaults.scales.x,
+          y: {
+            ticks: { color: '#64748b', font: { family: 'IBM Plex Mono', size: 10.5 } },
+            grid: { color: '#eef2f7' }
+          }
+        }
+      }
+    });
+
+    buildPickupList(data);
+
+    // Country (horizontal bar, toutes destinations, valeurs affichées)
+    const countryEntries = sortedEntries(countBy(data, 'Country'));
+    document.getElementById('countryChartWrap').style.height = Math.max(260, countryEntries.length * 26) + 'px';
+    charts.country = new Chart('countryChart', {
+      type: 'bar',
+      data: {
+        labels: countryEntries.map(e => e[0]),
+        datasets: [{
+          label: 'Expéditions',
+          data: countryEntries.map(e => e[1]),
+          backgroundColor: '#285f9a',
+          borderRadius: 4
+        }]
+      },
+      plugins: [valueLabelPlugin],
+      options: {
+        ...chartDefaults,
+        indexAxis: 'y',
+        layout: { padding: { right: 46 } },
+        plugins: { ...chartDefaults.plugins, legend: { display: false } },
+        scales: {
+          x: chartDefaults.scales.x,
+          y: {
+            ticks: { color: '#64748b', font: { family: 'IBM Plex Mono', size: 9.5 } },
+            grid: { color: '#eef2f7' }
+          }
+        }
+      }
+    });
+
+    // Delivery Term → Incoterms 2020
+    const dtStats = {};
+    data.forEach(r => {
+      const m = mapDeliveryTerm(r.DeliveryTerm);
+      const label = m.term || `${m.raw || '(vide)'} (non répertorié)`;
+      if (!dtStats[label]) dtStats[label] = { total: 0, codes: {}, known: !!m.term };
+      dtStats[label].total++;
+      dtStats[label].codes[m.raw || '(vide)'] = (dtStats[label].codes[m.raw || '(vide)'] || 0) + 1;
+    });
+    const dtEntries = Object.entries(dtStats).sort((a, b) => b[1].total - a[1].total);
+
+    charts.deliveryTerm = new Chart('deliveryTermChart', {
+      type: 'bar',
+      data: {
+        labels: dtEntries.map(e => e[0]),
+        datasets: [{
+          label: 'Expéditions',
+          data: dtEntries.map(e => e[1].total),
+          backgroundColor: dtEntries.map(e => e[1].known ? '#004487' : '#b91c1c'),
+          borderRadius: 4
+        }]
+      },
+      plugins: [valueLabelPlugin],
+      options: {
+        ...chartDefaults,
+        layout: { padding: { top: 22 } },
+        plugins: {
+          ...chartDefaults.plugins,
+          legend: { display: false },
+          tooltip: {
+            ...chartDefaults.plugins.tooltip,
+            callbacks: {
+              afterLabel: ctx => {
+                const codes = dtEntries[ctx.dataIndex][1].codes;
+                return Object.entries(codes).map(([k, v]) => `  · code ${k}: ${v}`);
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const incoFootnote = document.getElementById('incoterm-footnote');
+    const usedTerms = [...new Set(dtEntries.filter(e => e[1].known).map(e => e[0]))];
+    const unknownEntries = dtEntries.filter(e => !e[1].known);
+    let legend = usedTerms.map(t => `<strong>${esc(t)}</strong> ${esc(INCOTERM_NAMES[t] || '')}`).join(' &nbsp;·&nbsp; ');
+    if (unknownEntries.length) {
+      const unknownCodes = unknownEntries.map(e => Object.keys(e[1].codes).join(', ')).join(', ');
+      legend += (legend ? '<br>' : '') + `<strong style="color:var(--red)">Non répertoriés</strong> — codes à ajouter au référentiel : ${esc(unknownCodes)}`;
+    }
+    incoFootnote.innerHTML = legend || 'Aucun incoterm identifié sur ce fichier.';
+  }
+
+  // ─── PICKUP LIST (liste des enlèvements avec transporteur) ───
+  function buildPickupList(data) {
+    const rows = data.filter(r => classifyAWB(r.AirWayBill).cat === 'pickup');
+    document.getElementById('pickup-count').textContent = rows.length.toLocaleString('fr-FR');
+    document.getElementById('pickupTableBody').innerHTML = rows.map(r => {
+      const c = classifyAWB(r.AirWayBill);
+      const carrierLabel = r.Carrier ? esc(r.Carrier) : esc(normalizeCarrier(r.Carrier, r.Route).group);
+      return `
+        <tr>
+          <td class="td-ref">${esc(r.Reference)}</td>
+          <td>${carrierLabel}</td>
+          <td>${esc(c.detail)}</td>
+        </tr>
+      `;
+    }).join('') || `<tr><td colspan="3" style="color:var(--muted)">Aucun enlèvement organisé sur cette période.</td></tr>`;
+  }
+
+  // ─── SHIPMENT ANALYSIS (mois toujours complet, semaine respecte le filtre actif) ───
+  function buildShipmentAnalysisCharts(data) {
+    const withDate = allData.filter(r => r.MonthKey);
+    const withoutDate = allData.length - withDate.length;
+    const footnote = document.getElementById('dateCoverage-footnote');
+    footnote.innerHTML = withDate.length
+      ? `<strong>${withDate.length.toLocaleString('fr-FR')}</strong> expéditions datées sur ${allData.length.toLocaleString('fr-FR')}` +
+        (withoutDate ? ` — ${withoutDate.toLocaleString('fr-FR')} sans date exploitable (colonne date absente ou non reconnue).` : '.')
+      : `Aucune colonne de date reconnue dans ce fichier — le filtre par mois est indisponible.`;
+
+    // Mois : toujours sur l'ensemble des données (sert de sélecteur de filtre)
+    const monthCounts = {};
+    withDate.forEach(r => { monthCounts[r.MonthKey] = (monthCounts[r.MonthKey] || 0) + 1; });
+    const monthKeys = Object.keys(monthCounts).sort();
+    charts.byMonth = new Chart('shipmentsByMonthChart', {
+      type: 'bar',
+      data: {
+        labels: monthKeys.map(k => monthLabelOf(k)),
+        datasets: [{
+          label: 'Expéditions',
+          data: monthKeys.map(k => monthCounts[k]),
+          backgroundColor: monthKeys.map(k => k === monthFilter ? '#004487' : '#a8bdd1'),
+          borderRadius: 4
+        }]
+      },
+      plugins: [valueLabelPlugin],
+      options: {
+        ...chartDefaults,
+        layout: { padding: { top: 22 } },
+        plugins: { ...chartDefaults.plugins, legend: { display: false } },
+        onClick: (evt, elements) => {
+          if (!elements.length) return;
+          const key = monthKeys[elements[0].index];
+          applyMonthFilter(key === monthFilter ? 'all' : key);
+        },
+        onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }
+      }
+    });
+
+    // Semaine : respecte le filtre mois actif (ou l'ensemble si "Tous les mois")
+    const weekCounts = {};
+    data.forEach(r => { if (r.WeekKey) weekCounts[r.WeekKey] = (weekCounts[r.WeekKey] || 0) + 1; });
+    const weekKeys = Object.keys(weekCounts).sort();
+    charts.byWeek = new Chart('shipmentsByWeekChart', {
+      type: 'bar',
+      data: {
+        labels: weekKeys.map(k => k.replace('-', ' ')),
+        datasets: [{
+          label: 'Expéditions',
+          data: weekKeys.map(k => weekCounts[k]),
+          backgroundColor: '#0d5c8c',
+          borderRadius: 4
+        }]
+      },
+      plugins: [valueLabelPlugin],
+      options: {
+        ...chartDefaults,
+        layout: { padding: { top: 22 } },
+        plugins: { ...chartDefaults.plugins, legend: { display: false } }
+      }
+    });
+  }
+
+  function destroyCharts() {
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+  }
+
+  // ─── TABLE ─── (basée sur scopedData, filtrée en plus par la recherche)
+  function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase().trim();
+    filteredData = q
+      ? scopedData.filter(r =>
+          r.Reference.toLowerCase().includes(q) ||
+          r.Carrier.toLowerCase().includes(q) ||
+          r.Country.toLowerCase().includes(q) ||
+          r.Description.toLowerCase().includes(q) ||
+          r.DeliveryTerm.toLowerCase().includes(q)
+        )
+      : [...scopedData];
+    currentPage = 1;
+    renderTable();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const total = filteredData.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(currentPage, totalPages);
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const slice = filteredData.slice(start, start + PAGE_SIZE);
+
+    tbody.innerHTML = slice.map(r => `
+      <tr>
+        <td class="td-ref">${esc(r.Reference)}</td>
+        <td>${esc(r.Carrier)}</td>
+        <td>${originBadge(r.IsManual)}</td>
+        <td>${esc(r.Country)}</td>
+        <td title="${esc(r.Description)}">${esc(r.Description).substring(0, 60)}${r.Description.length > 60 ? '…' : ''}</td>
+        <td>${tmBadge(r.TransportMode)}</td>
+        <td>${incoBadge(r.DeliveryTerm)}</td>
+        <td>${awbBadge(r.AirWayBill)}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('table-count').textContent = `${total.toLocaleString('fr-FR')} ligne${total > 1 ? 's' : ''}`;
+    document.getElementById('page-info').textContent = `Page ${currentPage} / ${totalPages}`;
+    document.getElementById('btn-prev').disabled = currentPage === 1;
+    document.getElementById('btn-next').disabled = currentPage === totalPages;
+  }
+
+  function changePage(dir) {
+    const totalPages = Math.max(1, Math.ceil(filteredData.length / PAGE_SIZE));
+    currentPage = Math.max(1, Math.min(totalPages, currentPage + dir));
+    renderTable();
+  }
+
+  function tmBadge(mode) {
+    const m = (mode || '').toUpperCase();
+    if (m.includes('AIR')) return `<span class="badge badge-air">${esc(mode)}</span>`;
+    if (m.includes('SEA') || m.includes('OC')) return `<span class="badge badge-sea">${esc(mode)}</span>`;
+    if (m.includes('LTL') || m.includes('FTL') || m.includes('TRUCK') || m.includes('ROAD')) return `<span class="badge badge-ltl">${esc(mode)}</span>`;
+    return mode ? `<span class="badge badge-other">${esc(mode)}</span>` : '—';
+  }
+
+  function incoBadge(code) {
+    if (!code) return '—';
+    const m = mapDeliveryTerm(code);
+    if (!m.term) return `<span class="badge badge-inco-unknown" title="Code non répertorié">${esc(code)}</span>`;
+    return `<span class="badge badge-inco" title="${esc(INCOTERM_NAMES[m.term] || '')}">${esc(m.term)} (${esc(code)})</span>`;
+  }
+
+  function awbBadge(raw) {
+    const c = classifyAWB(raw);
+    const clsMap = { numeric: 'badge-awb-numeric', pickup: 'badge-awb-pickup', grouped: 'badge-awb-grouped', forwarder: 'badge-awb-forwarder', empty: 'badge-awb-empty' };
+    const title = c.detail ? esc(c.detail) : '';
+    return `<span class="badge ${clsMap[c.cat]}" title="${title}">${esc(c.label)}</span>`;
+  }
+
+  function originBadge(isManual) {
+    return isManual
+      ? `<span class="badge badge-manual">Manuel</span>`
+      : `<span class="badge badge-auto">Automatique</span>`;
+  }
+
+  // ─── RESET ───
+  function resetDashboard() {
+    allData = []; scopedData = []; filteredData = []; currentPage = 1; monthFilter = 'all';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('active-filter-row').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('upload-screen').style.display = 'flex';
+    document.getElementById('fileInput').value = '';
+    destroyCharts();
+  }
+</script>
+</body>
+</html>
